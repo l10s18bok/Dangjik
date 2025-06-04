@@ -1,0 +1,13 @@
+# [SB] 최소 필수 패키지만 (Python 3.11 호환)
+# requirements.txt
+fastapi
+uvicorn
+crawl4ai
+beautifulsoup4
+ollama
+openpyxl
+python-dotenv
+playwright
+mattermostdriver
+flask
+pandas
