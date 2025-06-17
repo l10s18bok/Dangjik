@@ -1,0 +1,241 @@
+<!-- [SB] templates/login.html - 로그인 페이지 (로딩 UI 추가) -->
+{% extends "base.html" %}
+
+{% block title %}당직 - 로그인{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="fas fa-sign-in-alt me-2"></i>로그인</h3>
+                <!-- [SB] 개발자 정보 표시 - 카드 헤더 오른쪽에 흰색 폰트로 표시 -->
+                <small class="text-white" style="font-size: 0.75rem;">- sbLee -</small>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>안내:</strong> 로그인하면 즉시 당직업무가 실행됩니다.
+                </div>
+                
+                <!-- [SB] 로딩 상태 표시 영역 (초기에는 숨김) -->
+                <div id="loadingStatus" class="alert alert-warning mb-4" style="display: none;">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div>
+                            <strong id="loadingMessage">시스템 확인 중...</strong>
+                            <div class="small text-muted" id="loadingSubMessage">잠시만 기다려주세요.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="POST" id="loginForm" novalidate>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">사용자 이메일 아이디</label>
+                        <input type="email" class="form-control" id="username" name="username" 
+                               placeholder="Mattermost ID로 로그인 하세요" required>
+                        <div class="form-text">Mattermost 계정 정보를 입력하세요.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">비밀번호</label>
+                        <input type="password" class="form-control" id="password" name="password" 
+                               placeholder="Mattermost 비밀번호" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="loginButton">
+                            <i class="fas fa-play me-2" id="loginIcon"></i>
+                            <span id="loginText">로그인</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // [SB] 로그인 폼과 관련 요소들 가져오기
+    const loginForm = document.getElementById('loginForm');
+    const loginButton = document.getElementById('loginButton');
+    const loginIcon = document.getElementById('loginIcon');
+    const loginText = document.getElementById('loginText');
+    const loadingStatus = document.getElementById('loadingStatus');
+    const loadingMessage = document.getElementById('loadingMessage');
+    const loadingSubMessage = document.getElementById('loadingSubMessage');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+
+    // [SB] 로딩 상태 메시지 배열
+    const loadingSteps = [
+        { message: '시스템 확인 중...', sub: '환경 설정을 점검하고 있습니다.' },
+        { message: 'AI 연결 확인 중...', sub: 'AI 서버 상태를 확인하고 있습니다.' },
+        { message: 'Mattermost 인증 중...', sub: '로그인 정보를 확인하고 있습니다.' },
+        { message: '대시보드 연결 중...', sub: '당직 웹사이트 로그인 중 입니다.' }
+    ];
+
+    let currentStep = 0;
+    let loadingInterval;
+
+    // [SB] 폼 제출 이벤트 처리
+    loginForm.addEventListener('submit', function(e) {
+        e.preventDefault(); // [SB] 기본 제출 방지
+        
+        // [SB] JavaScript 검증 수행
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+        
+        // [SB] 클라이언트 측 검증
+        if (!username || !password) {
+            alert('사용자명과 비밀번호를 모두 입력해주세요.');
+            return;
+        }
+        
+        // [SB] 이메일 형식 간단 검증 (선택사항)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(username)) {
+            alert('올바른 이메일 형식을 입력해주세요.');
+            usernameInput.focus();
+            return;
+        }
+        
+        // [SB] 검증 통과 시 로딩 상태 표시
+        showLoadingState();
+        
+        // [SB] 폼 데이터 수동 제출
+        submitForm(username, password);
+    });
+
+    // [SB] 로딩 상태 표시 함수
+    function showLoadingState() {
+        // [SB] 로딩 상태 UI 표시
+        loadingStatus.style.display = 'block';
+        
+        // [SB] 버튼 상태 변경
+        loginButton.disabled = true;
+        loginButton.classList.remove('btn-primary');
+        loginButton.classList.add('btn-secondary');
+        
+        // [SB] 아이콘을 스피너로 변경
+        loginIcon.classList.remove('fas', 'fa-play');
+        loginIcon.classList.add('spinner-border', 'spinner-border-sm');
+        loginText.textContent = '처리 중...';
+        
+        // [SB] 입력 필드 비활성화
+        usernameInput.disabled = true;
+        passwordInput.disabled = true;
+        
+        // [SB] 로딩 메시지 순차 표시
+        currentStep = 0;
+        updateLoadingMessage();
+        
+        loadingInterval = setInterval(function() {
+            currentStep++;
+            if (currentStep < loadingSteps.length) {
+                updateLoadingMessage();
+            } else {
+                // [SB] 마지막 단계에서는 일반적인 메시지 표시
+                loadingMessage.textContent = '처리 완료 대기 중...';
+                loadingSubMessage.textContent = '서버에서 처리 중입니다.';
+            }
+        }, 1500); // [SB] 1.5초마다 메시지 변경
+    }
+
+    // [SB] 로딩 메시지 업데이트 함수
+    function updateLoadingMessage() {
+        if (currentStep < loadingSteps.length) {
+            const step = loadingSteps[currentStep];
+            loadingMessage.textContent = step.message;
+            loadingSubMessage.textContent = step.sub;
+        }
+    }
+
+    // [SB] 폼 수동 제출 함수
+    function submitForm(username, password) {
+        // [SB] FormData 객체 생성
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('password', password);
+        
+        // [SB] fetch로 POST 요청 전송 (credentials 포함)
+        fetch('/login', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',  // [SB] 세션 쿠키 포함
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'  // [SB] AJAX 요청임을 명시
+            }
+        })
+        .then(response => {
+            if (response.redirected) {
+                // [SB] 성공적으로 리다이렉트 되면 해당 페이지로 이동
+                window.location.href = response.url;
+            } else if (response.ok) {
+                // [SB] 응답이 성공이지만 리다이렉트가 없는 경우 텍스트 확인
+                return response.text();
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+        })
+        .then(html => {
+            if (html) {
+                // [SB] 서버에서 에러 응답이 온 경우
+                hideLoadingState();
+                
+                // [SB] HTML에서 에러 메시지 추출
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const alerts = doc.querySelectorAll('.alert-danger');
+                
+                if (alerts.length > 0) {
+                    alert(alerts[0].textContent.trim());
+                } else {
+                    alert('로그인 처리 중 오류가 발생했습니다.');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('[SB] 로그인 요청 오류:', error);
+            
+            // [SB] 네트워크 오류 시 로딩 상태 해제
+            hideLoadingState();
+            alert('네트워크 오류가 발생했습니다. 다시 시도해주세요.');
+        });
+    }
+
+    // [SB] 로딩 상태 해제 함수
+    function hideLoadingState() {
+        // [SB] 로딩 상태 UI 숨김
+        loadingStatus.style.display = 'none';
+        
+        // [SB] 버튼 상태 복원
+        loginButton.disabled = false;
+        loginButton.classList.remove('btn-secondary');
+        loginButton.classList.add('btn-primary');
+        
+        // [SB] 아이콘 복원
+        loginIcon.classList.remove('spinner-border', 'spinner-border-sm');
+        loginIcon.classList.add('fas', 'fa-play');
+        loginText.textContent = '로그인';
+        
+        // [SB] 입력 필드 활성화
+        usernameInput.disabled = false;
+        passwordInput.disabled = false;
+        
+        // [SB] 로딩 인터벌 정리
+        if (loadingInterval) {
+            clearInterval(loadingInterval);
+        }
+    }
+
+    // [SB] 페이지 언로드 시 정리
+    window.addEventListener('beforeunload', function() {
+        if (loadingInterval) {
+            clearInterval(loadingInterval);
+        }
+    });
+});
+</script>
+{% endblock %}

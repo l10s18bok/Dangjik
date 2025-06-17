@@ -1,0 +1,89 @@
+# [SB] Python 관련 파일들
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# [SB] 가상환경 관련 파일들
+bin/
+include/
+lib/
+lib64/
+pyvenv.cfg
+share/
+
+# [SB] 환경변수 및 설정 파일들
+.env
+.venv
+ENV/
+env/
+venv/
+
+# [SB] IDE 및 에디터 설정 파일들
+.cursor/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# [SB] 시스템 파일들
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# [SB] 로그 파일들
+logs/
+*.log
+
+# [SB] 스크린샷 폴더 (용량이 클 수 있음)
+screenshot/
+
+# [SB] 임시 파일들
+temp_repo/
+*.tmp
+*.temp
+
+# [SB] 브라우저 프로필 및 상태 파일들
+browser_profile/
+storage_state.json
+
+# [SB] Docker 관련 (선택사항 - 필요하면 제거)
+# docker-compose.override.yml
+
+# [SB] 테스트 관련
+.coverage
+.pytest_cache/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# [SB] 기타
+*.sqlite3
+*.db
+node_modules/
+.npm
